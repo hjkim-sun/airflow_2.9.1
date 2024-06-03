@@ -73,10 +73,10 @@ x-airflow-common:
     # If you want to use it, outcomment it and replace airflow.cfg with the name of your config file
     # AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
   volumes:
-    - ${AIRFLOW_PROJ_DIR:-.}/airflow_2.9.1/dags:/opt/airflow/dags
-    - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
-    - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
-    - ${AIRFLOW_PROJ_DIR:-.}/airflow_2.9.1/plugins:/opt/airflow/plugins
+    - /home/ubuntu/airflow_2.9.1/dags:/opt/airflow/dags
+    - /home/ubuntu/logs:/opt/airflow/logs
+    - /home/ubuntu/config:/opt/airflow/config
+    - /home/ubuntu/airflow_2.9.1/plugins:/opt/airflow/plugins
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
