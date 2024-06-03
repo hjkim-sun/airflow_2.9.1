@@ -3,15 +3,22 @@ import pendulum
 from airflow.decorators import task
 
 with DAG(
-    dag_id="dags_python_task_decorator",
+    dag_id="dags_python_decorator_with_param",
     schedule="0 2 * * 1",
-    start_date=pendulum.datetime(2023, 3, 1, tz="Asia/Seoul"),
+    start_date=pendulum.datetime(2024, 6, 14, tz="Asia/Seoul"),
     catchup=False,
 ) as dag:
-    
+
     @task(task_id="python_task_1")
-    def print_context(some_input):
-        print(some_input)
+    def regist3(name, sex, *args, **kwargs):
+        print(f'이름: {name}')
+        print(f'성별: {sex}')
+        print(f'기타옵션들: {args}')
+        email = kwargs['email'] or 'empty'
+        phone = kwargs['phone'] or 'empty'
+        print(f'email: {email}')
+        print(f'phone: {phone}')
+        from pprint import pprint
+        pprint(kwargs)
 
-    python_task_1 = print_context('task_decorator 실행')
-
+    python_task_1 = regist3('hjkim', 'man', 'seoul', email='hjkim_sun@naver.com', phone='010')
