@@ -23,7 +23,7 @@ class SeoulApiDateSensor(BaseSensorOperator):
         import requests
         import json
         connection = BaseHook.get_connection(self.http_conn_id)
-        url = f'http://{connection.host}:{connection.port}/{self.endpoint}/1/5/{self.check_date}'
+        url = f'http://{connection.host}:{connection.port}/{self.endpoint}/{self.check_date}'
         self.log.info(f'url: {url}')
         response = requests.get(url)
         contents = json.loads(response.text)
