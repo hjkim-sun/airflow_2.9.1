@@ -37,12 +37,18 @@ class SeoulApiDateSensor(BaseSensorOperator):
             return False
         elif code is None:
             keys = list(contents.keys())
-            rslt_code = contents.get(keys[0]).get('RESULT').get('CODE')
+            try:
+                rslt_code = contents.get(keys[0]).get('RESULT').get('CODE')
+                # 정상 조회 코드 (INFO-000)
+                if rslt_code == 'INFO-000':
+                    self.log.info('상태코드: INFO-000, 데이터 갱신 확인')
+                    return True
+                else:
+                    self.log.info('기타 상태코드')
+                    return False
+            except:
+                # 비정상 호출일 경우 .get('CODE')에서 에러 발생
+                self.log.info('기타 상태코드')
+                return False
 
-            # 정상 조회 코드 (INFO-000)
-            if rslt_code == 'INFO-000':
-                self.log.info('상태코드: INFO-000, 데이터 갱신 확인')
-                return True
-        else:
-            self.log.info('상태코드 불분명')
-            return False
+

@@ -8,9 +8,9 @@ with DAG(
     schedule='0 9 * * *',
     catchup=False
 ) as dag:
-    sensor__tb_cycle_rent_use_day_info = SeoulApiDateSensor(
-        task_id='tb_cycle_rent_use_day_info_sensor',
-        dataset_nm='tb_cycle_rent_use_day_info',
+    sensor__cycle_new_member_rent_info_day = SeoulApiDateSensor(
+        task_id='sensor__cycle_new_member_rent_info_day',
+        dataset_nm='cycleNewMemberRentInfoDay',
         check_date='{{data_interval_start.in_timezone("Asia/Seoul") | ds_nodash }}'
     )
 
