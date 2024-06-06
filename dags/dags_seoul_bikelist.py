@@ -12,6 +12,6 @@ with DAG(
     seoul_api2csv_bike_list = SeoulApiToCsvOperator(
         task_id='seoul_api2csv_bike_list',
         dataset_nm='bikeList',
-        path='/opt/airflow/files/bikeList/{{data_interval_end.in_timezone("Asia/Seoul") | ds_nodash }}',
+        path='/opt/airflow/ingest/bikeList/{{data_interval_end.in_timezone("Asia/Seoul") | ds_nodash }}',
         file_name='bikeList.csv'
     )
