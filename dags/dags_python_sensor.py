@@ -4,45 +4,45 @@ import pendulum
 from airflow.hooks.base import BaseHook
 
 with DAG(
-        dag_id='dags_python_sensor',
-        start_date=pendulum.datetime(2024, 6, 16, tz='Asia/Seoul'),
-        schedule='10 1 * * *',
-        catchup=False
+    dag_id='dags_python_sensor',
+    start_date=pendulum.datetime(2024,6,16, tz='Asia/Seoul'),
+    schedule='10 1 * * *',
+    catchup=False
 ) as dag:
-    def check_api_update(http_conn_id, endpoint, base_dt_col, **kwargs):
+    def check_api_update(http_conn_id, endpoint, check_date, **kwargs):
         import requests
         import json
         connection = BaseHook.get_connection(http_conn_id)
-        url = f'http://{connection.host}:{connection.port}/{endpoint}/1/100'
+        url = f'http://{connection.host}:{connection.port}/{endpoint}/1/5/{check_date}'
+        print(f'url: {url}')
         response = requests.get(url)
-
         contents = json.loads(response.text)
-        key_nm = list(contents.keys())[0]
-        row_data = contents.get(key_nm).get('row')
-        last_dt = row_data[0].get(base_dt_col)
-        last_date = last_dt[:10]
-        last_date = last_date.replace('.', '-').replace('/', '-')
-        try:
-            pendulum.from_format(last_date, 'YYYY-MM-DD')
-        except:
-            from airflow.exceptions import AirflowException
-            AirflowException(f'{base_dt_col} 컬럼은 YYYY.MM.DD 또는 YYYY/MM/DD 형태가 아닙니다.')
+        print(f'response: {contents}')
+        code = contents.get('CODE')
 
-        today_ymd = kwargs.get('data_interval_end').in_timezone('Asia/Seoul').strftime('%Y-%m-%d')
-        if last_date >= today_ymd:
-            print(f'생성 확인(배치 날짜: {today_ymd} / API Last 날짜: {last_date})')
-            return True
-        else:
-            print(f'Update 미완료 (배치 날짜: {today_ymd} / API Last 날짜:{last_date})')
+        # 에러코드 INFO-200: 해당되는 데이터가 없습니다.
+        # 미 갱신시 INFO-200으로 리턴됨
+        if code is not None and code == 'INFO-200':
+            print('상태코드: INFO-200, 데이터 미갱신')
             return False
+        elif code is None:
+            keys = list(contents.keys())
+            rslt_code = contents.get(keys[0]).get('RESULT').get('CODE')
 
+            # 정상 조회 코드 (INFO-000)
+            if rslt_code == 'INFO-000':
+                print('상태코드: INFO-000, 데이터 갱신 확인')
+                return True
+        else:
+            print('상태코드 불분명')
+            return False
 
     sensor_task = PythonSensor(
         task_id='sensor_task',
         python_callable=check_api_update,
-        op_kwargs={'http_conn_id': 'openapi.seoul.go.kr',
-                   'endpoint': '{{var.value.apikey_openapi_seoul_go_kr}}/json/cycleNewMemberRentInfoDay',
-                   'base_dt_col': 'JOIN_DT'},
-        poke_interval=600,  # 10분
+        op_kwargs={'http_conn_id':'openapi.seoul.go.kr',
+                   'endpoint':'{{var.value.apikey_openapi_seoul_go_kr}}/json/tbCycleRentUseDayInfo',
+                   'check_date':'{{data_interval_start.in_timezone("Asia/Seoul") | ds_nodash }}'},
+        poke_interval=600,   #10분
         mode='reschedule'
     )

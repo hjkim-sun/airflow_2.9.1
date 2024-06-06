@@ -1,16 +1,14 @@
 from airflow.sensors.base import BaseSensorOperator
 from airflow.hooks.base import BaseHook
 '''
-서울시 공공데이터 API 추출시 특정 날짜 컬럼을 조사하여 
-배치 날짜 기준 전날 데이터가 존재하는지 체크하는 센서 
-1. 데이터셋에 날짜 컬럼이 존재하고 
-2. API 사용시 그 날짜 컬럼으로 ORDER BY DESC 되어 가져온다는 가정하에 사용 가능
+서울시 공공데이터 API 추출시 특정 날짜로 업데이트 되었는지 확인하는 센서 
+{dataset}/1/5/{yyyymmdd} 형태로 조회하는 데이터셋만 적용 가능
 '''
 
 class SeoulApiDateSensor(BaseSensorOperator):
     template_fields = ('endpoint',)
 
-    def __init__(self, dataset_nm, base_dt_col, day_off=0, **kwargs):
+    def __init__(self, dataset_nm, check_date, **kwargs):
         '''
         dataset_nm: 서울시 공공데이터 포털에서 센싱하고자 하는 데이터셋 명
         base_dt_col: 센싱 기준 컬럼 (yyyy.mm.dd... or yyyy/mm/dd... 형태만 가능)
@@ -18,37 +16,33 @@ class SeoulApiDateSensor(BaseSensorOperator):
         '''
         super().__init__(**kwargs)
         self.http_conn_id = 'openapi.seoul.go.kr'
-        self.endpoint = '{{var.value.apikey_openapi_seoul_go_kr}}/json/' + dataset_nm + '/1/100'  # 100건만 추출
-        self.base_dt_col = base_dt_col
-        self.day_off = day_off
+        self.endpoint = '{{var.value.apikey_openapi_seoul_go_kr}}/json/' + dataset_nm + '/1/5'  # 5건만 추출
+        self.check_date = check_date
 
     def poke(self, context):
         import requests
         import json
-        from dateutil.relativedelta import relativedelta
         connection = BaseHook.get_connection(self.http_conn_id)
-        url = f'http://{connection.host}:{connection.port}/{self.endpoint}'
-        self.log.info(f'request url:{url}')
+        url = f'http://{connection.host}:{connection.port}/{self.endpoint}/1/5/{self.check_date}'
+        self.log.info(f'url: {url}')
         response = requests.get(url)
-
         contents = json.loads(response.text)
-        key_nm = list(contents.keys())[0]
-        row_data = contents.get(key_nm).get('row')
-        last_dt = row_data[0].get(self.base_dt_col)
-        last_date = last_dt[:10]
-        last_date = last_date.replace('.', '-').replace('/', '-')
-        search_ymd = (context.get('data_interval_end').in_timezone('Asia/Seoul') + relativedelta(
-            days=self.day_off)).strftime('%Y-%m-%d')
-        try:
-            import pendulum
-            pendulum.from_format(last_date, 'YYYY-MM-DD')
-        except:
-            from airflow.exceptions import AirflowException
-            AirflowException(f'{self.base_dt_col} 컬럼은 YYYY.MM.DD 또는 YYYY/MM/DD 형태가 아닙니다.')
+        self.log.info(f'response: {contents}')
+        code = contents.get('CODE')
 
-        if last_date >= search_ymd:
-            self.log.info(f'생성 확인(기준 날짜: {search_ymd} / API Last 날짜: {last_date})')
-            return True
+        # 에러코드 INFO-200: 해당되는 데이터가 없습니다.
+        # 미 갱신시 INFO-200으로 리턴됨
+        if code is not None and code == 'INFO-200':
+            self.log.info('상태코드: INFO-200, 데이터 미갱신')
+            return False
+        elif code is None:
+            keys = list(contents.keys())
+            rslt_code = contents.get(keys[0]).get('RESULT').get('CODE')
+
+            # 정상 조회 코드 (INFO-000)
+            if rslt_code == 'INFO-000':
+                self.log.info('상태코드: INFO-000, 데이터 갱신 확인')
+                return True
         else:
-            self.log.info(f'Update 미완료 (기준 날짜: {search_ymd} / API Last 날짜:{last_date})')
+            self.log.info('상태코드 불분명')
             return False
