@@ -80,7 +80,7 @@ x-airflow-common:
   volumes:
     - /home/ubuntu/airflow_2.9.1/dags:/opt/airflow/dags
     - /home/ubuntu/logs:/opt/airflow/logs
-    - /home/ubuntu/config:/opt/airflow/config
+    - /home/ubuntu/airflow_2.9.1/config:/opt/airflow/config
     - /home/ubuntu/airflow_2.9.1/plugins:/opt/airflow/plugins
     - /home/ubuntu/ingest:/opt/airflow/ingest
   user: "${AIRFLOW_UID:-50000}:0"
