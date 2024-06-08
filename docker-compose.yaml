@@ -327,6 +327,9 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    networks:
+      network_custom:
+        ipv4_address: 172.28.0.11
 
 volumes:
   postgres-db-volume:
