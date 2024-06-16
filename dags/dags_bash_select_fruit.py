@@ -8,7 +8,10 @@ with DAG(
     start_date=pendulum.datetime(2024, 6, 14, tz="Asia/Seoul"),
     catchup=False
 ) as dag:
-    
+    t0_grant_permission = BashOperator(
+        task_id="t0_grant_permission",
+        bash_command="chmod +x /opt/airflow/plugins/shell/select_fruit.sh ",
+    )
     t1_orange = BashOperator(
         task_id="t1_orange",
         bash_command="/opt/airflow/plugins/shell/select_fruit.sh ORANGE",
@@ -19,4 +22,4 @@ with DAG(
         bash_command="/opt/airflow/plugins/shell/select_fruit.sh AVOCADO",
     )
 
-    t1_orange >> t2_avocado
+    t0_grant_permission >> [t1_orange >> t2_avocado]
