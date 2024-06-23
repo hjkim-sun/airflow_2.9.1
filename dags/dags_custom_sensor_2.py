@@ -1,4 +1,4 @@
-from sensors.seoul_api_date_sensor import SeoulApiDateColumnSensor
+from sensors.seoul_api_date_column_sensor import SeoulApiDateColumnSensor
 from airflow import DAG
 import pendulum
 
